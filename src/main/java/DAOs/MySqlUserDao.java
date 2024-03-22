@@ -1,19 +1,14 @@
 package DAOs;
-
 import DAOs.MySqlDao;
 import DAOs.UserDaoInterface;
 import DTOs.User;
 import Exceptions.DaoException;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-
-public class MySqlUserDao extends MySqlDao implements UserDaoInterface
-{
+public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
     /**
      * Will access and return a List of all users in User database table
      * @return List of User objects
@@ -80,13 +75,11 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface
 
     /**
      * Given a username and password, find the corresponding User
-     * @param first_name
-     * @param student_grade
+     * @param studentId
      * @return User object if found, or null otherwise
      * @throws DaoException
      */
-    @Override
-    public User findUserByUsernamePassword(String first_name, String student_grade) throws DaoException
+    public User findUserByStudentId(int studentId) throws DaoException
     {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
@@ -96,24 +89,27 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface
         {
             connection = this.getConnection();
 
-            String query = "SELECT * FROM `StudentGrades` WHERE first_name = ? AND grade = ?";
+            String query = "SELECT * FROM `StudentGrades` WHERE student_id = ?";
             preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, first_name);
-            preparedStatement.setString(2, student_grade);
+            preparedStatement.setInt(1, studentId);
 
             resultSet = preparedStatement.executeQuery();
             if (resultSet.next())
             {
                 int userId = resultSet.getInt("id");
-                int studentId = resultSet.getInt("student_Id");
                 String firstName = resultSet.getString("first_name");
+                String lastName = resultSet.getString("last_name");
+                int courseId = resultSet.getInt("course_id");
+                String courseName = resultSet.getString("course_name");
                 float grade = resultSet.getFloat("grade");
-                
-                user = new User(userId, studentId, firstName, grade);
+                String semester = resultSet.getString("semester");
+
+
+                user=new User(userId, studentId, firstName, lastName, courseId, courseName, grade, semester);
             }
         } catch (SQLException e)
         {
-            throw new DaoException("findUserByUsernamePassword() " + e.getMessage());
+            throw new DaoException("findUserByFirstName() " + e.getMessage());
         } finally
         {
             try
@@ -132,9 +128,187 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface
                 }
             } catch (SQLException e)
             {
-                throw new DaoException("findUserByUsernamePassword() " + e.getMessage());
+                throw new DaoException("findUserByFirstName() " + e.getMessage());
             }
         }
         return user;     // reference to User object, or null value
     }
+
+    /**
+     * Given a user ID, delete the corresponding User
+     * @param studentId
+     * @return User object if found, or null otherwise
+     * @throws DaoException
+     */
+    public boolean deleteUserByStudentId(int studentId) throws DaoException {
+        String sql = "DELETE FROM StudentGrades WHERE student_id = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, studentId);
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0; // Return true if at least one row was affected (user deleted)
+        } catch (SQLException e) {
+            throw new DaoException("Error deleting user by student ID: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Given a User object, insert a new User into the database
+     * @param user
+     * @return User object with ID field set
+     * @throws DaoException
+     */
+    public User insertUser(User user) throws DaoException {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet generatedKeys = null;
+
+        try {
+            connection = this.getConnection();
+
+            String query = "INSERT INTO StudentGrades (student_id, first_name, last_name, course_id, course_name, grade, semester) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            preparedStatement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setInt(1, user.getStudentId());
+            preparedStatement.setString(2, user.getFirstName());
+            preparedStatement.setString(3, user.getLastName());
+            preparedStatement.setInt(4, user.getCourseId());
+            preparedStatement.setString(5, user.getCourseName());
+            preparedStatement.setFloat(6, user.getGrade());
+            preparedStatement.setString(7, user.getSemester());
+
+            int rowsInserted = preparedStatement.executeUpdate();
+            if (rowsInserted == 0) {
+                throw new DaoException("Failed to insert user into the database.");
+            }
+
+            // Retrieve auto-generated ID
+            generatedKeys = preparedStatement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                int userId = generatedKeys.getInt(1);
+                user.setId(userId);
+            } else {
+                throw new DaoException("Failed to retrieve auto-generated ID for the inserted user.");
+            }
+        } catch (SQLException e) {
+            throw new DaoException("insertUser() " + e.getMessage());
+        } finally {
+            try {
+                if (generatedKeys != null) {
+                    generatedKeys.close();
+                }
+                if (preparedStatement != null) {
+                    preparedStatement.close();
+                }
+                if (connection != null) {
+                    freeConnection(connection);
+                }
+            } catch (SQLException e) {
+                throw new DaoException("insertUser() " + e.getMessage());
+            }
+        }
+
+        return user;
+    }
+
+    /**
+     * Given a student ID and a User object, update the corresponding User in the database
+     * @param studentId
+     * @param user
+     * @throws DaoException
+     */
+    public void updateUserByStudentId(int studentId, User user) throws DaoException {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+
+        try {
+            connection = this.getConnection();
+
+            String query = "UPDATE StudentGrades SET first_name = ?, last_name = ?, course_id = ?, " +
+                    "course_name = ?, grade = ?, semester = ? WHERE student_id = ?";
+            preparedStatement = connection.prepareStatement(query);
+            preparedStatement.setString(1, user.getFirstName());
+            preparedStatement.setString(2, user.getLastName());
+            preparedStatement.setInt(3, user.getCourseId());
+            preparedStatement.setString(4, user.getCourseName());
+            preparedStatement.setFloat(5, user.getGrade());
+            preparedStatement.setString(6, user.getSemester());
+            preparedStatement.setInt(7, studentId);
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new DaoException("No user found with student ID " + studentId + " to update.");
+            }
+        } catch (SQLException e) {
+            throw new DaoException("updateUserByStudentId() " + e.getMessage());
+        } finally {
+            try {
+                if (preparedStatement != null) {
+                    preparedStatement.close();
+                }
+                if (connection != null) {
+                    freeConnection(connection);
+                }
+            } catch (SQLException e) {
+                throw new DaoException("updateUserByStudentId() " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Given a Comparator, return a List of all users in User database table, sorted using the Comparator
+     * @param comparator
+     * @return List of User objects
+     * @throws DaoException
+     */
+    public List<User> findUsersUsingFilter(Comparator<User> comparator) throws DaoException {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+        List<User> filteredUsers = new ArrayList<>();
+
+        try {
+            connection = this.getConnection();
+
+            String query = "SELECT * FROM StudentGrades";
+            preparedStatement = connection.prepareStatement(query);
+
+            resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                int userId = resultSet.getInt("id");
+                int studentId = resultSet.getInt("student_id");
+                String firstName = resultSet.getString("first_name");
+                String lastName = resultSet.getString("last_name");
+                int courseId = resultSet.getInt("course_id");
+                String courseName = resultSet.getString("course_name");
+                float grade = resultSet.getFloat("grade");
+                String semester = resultSet.getString("semester");
+                User user = new User(userId, studentId, firstName, lastName, courseId, courseName, grade, semester);
+                filteredUsers.add(user);
+            }
+
+            // Apply the filter
+            filteredUsers.sort(comparator);
+
+        } catch (SQLException e) {
+            throw new DaoException("findUsersUsingFilter() " + e.getMessage());
+        } finally {
+            try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (preparedStatement != null) {
+                    preparedStatement.close();
+                }
+                if (connection != null) {
+                    freeConnection(connection);
+                }
+            } catch (SQLException e) {
+                throw new DaoException("findUsersUsingFilter() " + e.getMessage());
+            }
+        }
+
+        return filteredUsers;
+    }
+
 }

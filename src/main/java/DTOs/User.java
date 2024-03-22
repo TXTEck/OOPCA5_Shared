@@ -1,8 +1,6 @@
 package DTOs;
-
-
-public class User
-{
+import java.util.Objects;
+public class User {
     private int id;
 
     private int studentId;
@@ -35,9 +33,26 @@ public class User
         this.grade = grade;
     }
 
-    public User()
+    public User(int studentId, String firstName, String lastName, int courseId, String courseName, float grade, String semester)
     {
+        this.studentId = studentId;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.courseId = courseId;
+        this.courseName = courseName;
+        this.grade = grade;
+        this.semester = semester;
     }
+
+    public User(String firstName, String lastName, int courseId, String courseName, float grade, String semester) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.courseId = courseId;
+        this.courseName = courseName;
+        this.grade = grade;
+        this.semester = semester;
+    }
+
 
     public int getId()
     {
@@ -100,6 +115,26 @@ public class User
         this.courseName = courseName;
     }
 
+    public float getGrade()
+    {
+        return grade;
+    }
+
+    public void setGrade(float grade)
+    {
+        this.grade = grade;
+    }
+
+    public String getSemester()
+    {
+        return semester;
+    }
+
+    public void setSemester(String semester)
+    {
+        this.semester = semester;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -113,7 +148,23 @@ public class User
                 ", semester='" + semester + '\'' +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return studentId == user.studentId &&
+                courseId == user.courseId &&
+                Float.compare(user.grade, grade) == 0 &&
+                Objects.equals(firstName, user.firstName) &&
+                Objects.equals(lastName, user.lastName) &&
+                Objects.equals(courseName, user.courseName) &&
+                Objects.equals(semester, user.semester);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(studentId, firstName, lastName, courseId, courseName, grade, semester);
+    }
 }
-
-
-
