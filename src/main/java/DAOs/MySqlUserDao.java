@@ -8,6 +8,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import com.google.gson.Gson;
 public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
     /**
      * Will access and return a List of all users in User database table
@@ -309,6 +310,20 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
         }
 
         return filteredUsers;
+    }
+
+    public String findUserJsonByStudentId(int studentId) throws DaoException {
+        try {
+            User user = findUserByStudentId(studentId);
+            if (user != null) {
+                Gson gson = new Gson();
+                return gson.toJson(user);
+            } else {
+                return "No user found with student ID " + studentId;
+            }
+        } catch (DaoException e) {
+            throw new DaoException("Error finding user as JSON: " + e.getMessage());
+        }
     }
 
 }
