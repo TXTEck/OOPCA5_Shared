@@ -182,4 +182,19 @@ public class MySqlUserDaoTest {
             previousGrade = user.getGrade();
         }
     }
+
+    @Test
+    public void convertListOfEntitiesToJSONString() throws DaoException {
+        // Arrange: Prepare test data and dependencies
+        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
+        List<User> users = userDao.findAllUsers(); // Get the list of users
+
+        // Act: Call the method to be tested
+        String jsonString = userDao.studentListToJson(users);
+
+        // Assert: Verify the results
+        assertNotNull("JSON string should not be null", jsonString);
+        assertFalse("JSON string should not be empty", jsonString.isEmpty());
+        System.out.println("JSON String: " + jsonString);
+    }
 }

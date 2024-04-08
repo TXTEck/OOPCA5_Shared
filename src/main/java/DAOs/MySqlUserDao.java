@@ -326,4 +326,18 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
         }
     }
 
+    public String studentListToJson(List<User> list) throws DaoException {
+        List<User> users = findAllUsers();
+        Gson gson = new Gson();
+        String json = gson.toJson(users);
+        System.out.println(json);
+        return json;
+    }
+
+    public String userToJson(User user) throws DaoException {
+        Gson gson = new Gson();
+        String json = gson.toJson(user);
+        System.out.println(json);
+        return json;
+    }
 }
