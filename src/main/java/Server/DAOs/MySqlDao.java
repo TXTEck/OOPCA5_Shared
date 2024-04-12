@@ -1,5 +1,5 @@
-package DAOs;
-import Exceptions.DaoException;
+package Server.DAOs;
+import Server.Exceptions.DaoException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
