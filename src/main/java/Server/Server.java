@@ -5,6 +5,7 @@ import Server.DAOs.MySqlUserDao;
 import Server.DAOs.UserDaoInterface;
 import Server.DTOs.User;
 import Server.Exceptions.DaoException;
+import com.google.gson.Gson;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -139,6 +140,9 @@ class ClientHandler implements Runnable {
                         break;
                     case 9:
                         displayEntityById();
+                        break;
+                    case 10:
+                        displayAllEntitys();
                         break;
                     case 0:
                         socketWriter.println("Sorry to see you leaving. Goodbye.");
@@ -410,5 +414,21 @@ class ClientHandler implements Runnable {
         } catch (NumberFormatException | IOException e) {
             socketWriter.println("Invalid input. Please enter a valid ID.");
         }
+    }
+
+    private void displayAllEntitys()
+    {
+        try{
+            List<User> displayAllEntitys = IUserDao.findAllUsers();
+
+            Gson gson = new Gson();
+
+            String  Json = gson.toJson(displayAllEntitys);
+            
+            socketWriter.println(Json);
+        } catch (DaoException e){
+            socketWriter.println("Error: " + e.getMessage());
+        }
+
     }
 }

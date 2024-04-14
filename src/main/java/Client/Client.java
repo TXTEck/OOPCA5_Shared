@@ -1,9 +1,15 @@
 package Client;
 
+import Server.DTOs.User;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import javax.swing.text.html.parser.Entity;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Client {
@@ -22,6 +28,7 @@ public class Client {
         COMMANDS.put(7, "Convert List of Users to JSON");
         COMMANDS.put(8, "Convert a single user to JSON");
         COMMANDS.put(9, "Display Entity by Id"); // Added for Feature 9
+        COMMANDS.put(10, "Display all Entitys");// Added for feature 10
         COMMANDS.put(0, "Exit");
     }
 
@@ -107,6 +114,27 @@ public class Client {
                 }
             }
         } catch (IOException e) {
+            System.out.println("IO Exception: " + e.getMessage());
+        }
+    }
+
+    private void displayAllEntitys(PrintWriter out, BufferedReader in) throws IOException {
+        try{
+            out.println("10");
+
+            StringBuilder jsonResponseFromServer = new StringBuilder();
+            String response;
+            while((response = in.readLine()) !=null ) {
+                jsonResponseFromServer.append(response);
+            }
+
+            Gson gson = new Gson();
+            List<User> entitys = gson.fromJson(jsonResponseFromServer.toString(), new TypeToken<List<User>>(){}.getType());
+            for(User entity: entitys){
+                System.out.println(entity);
+            }
+
+        } catch (IOException e){
             System.out.println("IO Exception: " + e.getMessage());
         }
     }

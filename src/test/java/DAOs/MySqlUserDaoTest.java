@@ -6,10 +6,12 @@ import Server.DAOs.UserDaoInterface;
 import Server.DTOs.User;
 import Server.Exceptions.DaoException;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import javax.swing.text.html.parser.Entity;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -227,4 +229,21 @@ public class MySqlUserDaoTest {
         String response = in.readLine();
         assertEquals("Entity not found.", response);
     }
+
+
+    @Test
+    public void displayAllEntitys() throws IOException {
+        // Sending command for Display all Entitys
+        out.println(10);
+
+        String jsonResponseFromServer = in.readLine();
+
+        Gson gson = new Gson();
+
+        List<User> entitys = gson.fromJson(jsonResponseFromServer, new TypeToken<List<User>>(){}.getType());
+
+        assertNotNull("Entitys should not be null", entitys);
+        assertFalse("Entitys should not be empty",  entitys.isEmpty());
+    }
+
 }
