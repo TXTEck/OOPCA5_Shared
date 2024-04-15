@@ -5,6 +5,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
+import Server.DTOs.User;
+import com.google.gson.Gson;
 
 public class Client {
 
@@ -22,6 +25,7 @@ public class Client {
         COMMANDS.put(7, "Convert List of Users to JSON");
         COMMANDS.put(8, "Convert a single user to JSON");
         COMMANDS.put(9, "Display Entity by Id"); // Added for Feature 9
+        COMMANDS.put(11, "Insert New User"); // Added for Feature 11
         COMMANDS.put(0, "Exit");
     }
 
@@ -63,6 +67,9 @@ public class Client {
                         break;
                     case 9:
                         displayEntityById(out, in, consoleInput);
+                        break;
+                    case 11:
+                        insertNewUser(out, in);
                         break;
                     default:
                         System.out.println("Invalid command.");
@@ -107,6 +114,34 @@ public class Client {
                 }
             }
         } catch (IOException e) {
+            System.out.println("IO Exception: " + e.getMessage());
+        }
+    }
+
+    private void insertNewUser(PrintWriter out, BufferedReader in) {
+        Scanner keyboard = new Scanner(System.in);
+        try{
+            System.out.println("Enter student name: ");
+            String studentName = keyboard.nextLine();
+            System.out.println("Enter student last name: ");
+            String studentLastName = keyboard.nextLine();
+            System.out.println("Enter course ID: ");
+            int courseId = keyboard.nextInt();
+            System.out.println("Enter course name: ");
+            String courseName = keyboard.nextLine();
+            System.out.println("Enter grade: ");
+            float grade = keyboard.nextFloat();
+            System.out.println("Enter semester: ");
+            String semester = keyboard.nextLine();
+
+            User newUser = new User(studentName, studentLastName, courseId, courseName, grade, semester);
+            Gson gson = new Gson();
+            String json = gson.toJson(newUser);
+            out.println(json);
+
+            String response = in.readLine();
+            System.out.println(response);
+        }catch (IOException e){
             System.out.println("IO Exception: " + e.getMessage());
         }
     }
