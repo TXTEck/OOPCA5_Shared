@@ -1,4 +1,4 @@
-package DTOs;
+package Server.DTOs;
 import java.util.Objects;
 public class User {
     private int id;
