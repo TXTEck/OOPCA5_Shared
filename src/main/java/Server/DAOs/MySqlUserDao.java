@@ -1,73 +1,74 @@
-package DAOs;
-import DAOs.MySqlDao;
-import DAOs.UserDaoInterface;
-import DTOs.User;
-import Exceptions.DaoException;
+package Server.DAOs;
+
+import Server.DTOs.User;
+import Server.Exceptions.DaoException;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import com.google.gson.Gson;
+
 public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
+    private static final String URL = "jdbc:mysql://localhost/oop_ca5";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = "";
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USERNAME, PASSWORD);
+    }
     /**
+     * Main author: Liam Moore
      * Will access and return a List of all users in User database table
+     *
      * @return List of User objects
      * @throws DaoException
      */
     @Override
-    public List<User> findAllUsers() throws DaoException
-    {
+    public List<User> findAllUsers() throws DaoException {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
         List<User> usersList = new ArrayList<>();
 
-        try
-        {
+        try {
             //Get connection object using the getConnection() method inherited
             // from the super class (MySqlDao.java)
-            connection = this.getConnection();
+            connection = getConnection();
 
-            String query = "SELECT * FROM StudentGrades";
+            String query = "SELECT * FROM studentgrades";
             preparedStatement = connection.prepareStatement(query);
 
             //Using a PreparedStatement to execute SQL...
             resultSet = preparedStatement.executeQuery();
-            while (resultSet.next())
-            {
-                int userId = resultSet.getInt("id");
-                int studentId = resultSet.getInt("student_id");
-                String firstName = resultSet.getString("first_name");
-                String lastName = resultSet.getString("last_name");
-                int courseId = resultSet.getInt("course_id");
-                String courseName = resultSet.getString("course_name");
-                float grade = resultSet.getFloat("grade");
-                String semester = resultSet.getString("semester");
-                User u = new User(userId, studentId, firstName, lastName, courseId, courseName, grade, semester);
-                usersList.add(u);
+            while (resultSet.next()) {
+                User user = new User(
+                        resultSet.getInt("id"),
+                        resultSet.getInt("student_id"),
+                        resultSet.getString("first_name"),
+                        resultSet.getString("last_name"),
+                        resultSet.getInt("course_id"),
+                        resultSet.getString("course_name"),
+                        resultSet.getFloat("grade"),
+                        resultSet.getString("semester")
+                );
+                usersList.add(user);
+                System.out.println("User found: " + user);  // Log each user retrieved
             }
-        } catch (SQLException e)
-        {
+        } catch (SQLException e) {
             throw new DaoException("findAllUseresultSet() " + e.getMessage());
-        } finally
-        {
-            try
-            {
-                if (resultSet != null)
-                {
+        } finally {
+            try {
+                if (resultSet != null) {
                     resultSet.close();
                 }
-                if (preparedStatement != null)
-                {
+                if (preparedStatement != null) {
                     preparedStatement.close();
                 }
-                if (connection != null)
-                {
+                if (connection != null) {
                     freeConnection(connection);
                 }
-            } catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new DaoException("findAllUsers() " + e.getMessage());
             }
         }
@@ -75,68 +76,44 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
     }
 
     /**
-     * Given a username and password, find the corresponding User
+     * Main author: Liam Moore
+     * Other Contributors: Bianca Valicec
+     * Given a user ID, find the corresponding User
+     *
      * @param studentId
      * @return User object if found, or null otherwise
      * @throws DaoException
      */
-    public User findUserByStudentId(int studentId) throws DaoException
-    {
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
-        User user = null;
-        try
-        {
-            connection = this.getConnection();
-
-            String query = "SELECT * FROM `StudentGrades` WHERE student_id = ?";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setInt(1, studentId);
-
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next())
-            {
-                int userId = resultSet.getInt("id");
-                String firstName = resultSet.getString("first_name");
-                String lastName = resultSet.getString("last_name");
-                int courseId = resultSet.getInt("course_id");
-                String courseName = resultSet.getString("course_name");
-                float grade = resultSet.getFloat("grade");
-                String semester = resultSet.getString("semester");
-
-
-                user=new User(userId, studentId, firstName, lastName, courseId, courseName, grade, semester);
+    @Override
+    public User findUserByStudentId(int studentId) throws DaoException {
+        String query = "SELECT * FROM `studentgrades` WHERE student_id = ?";
+        try (Connection connection = this.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+             preparedStatement.setInt(1, studentId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return new User(
+                            resultSet.getInt("id"),
+                            resultSet.getInt("student_id"),
+                            resultSet.getString("first_name"),
+                            resultSet.getString("last_name"),
+                            resultSet.getInt("course_id"),
+                            resultSet.getString("course_name"),
+                            resultSet.getFloat("grade"),
+                            resultSet.getString("semester")
+                    );
+                }
             }
-        } catch (SQLException e)
-        {
-            throw new DaoException("findUserByFirstName() " + e.getMessage());
-        } finally
-        {
-            try
-            {
-                if (resultSet != null)
-                {
-                    resultSet.close();
-                }
-                if (preparedStatement != null)
-                {
-                    preparedStatement.close();
-                }
-                if (connection != null)
-                {
-                    freeConnection(connection);
-                }
-            } catch (SQLException e)
-            {
-                throw new DaoException("findUserByFirstName() " + e.getMessage());
-            }
+        } catch (SQLException e) {
+            throw new DaoException("findUserByStudentID() " + e.getMessage());
         }
-        return user;     // reference to User object, or null value
+        return null;  // Return null if no user is found
     }
 
     /**
+     * Main author: Bianca Valicec
      * Given a user ID, delete the corresponding User
+     *
      * @param studentId
      * @return User object if found, or null otherwise
      * @throws DaoException
@@ -154,7 +131,9 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
     }
 
     /**
+     * Main author: Bianca Valicec
      * Given a User object, insert a new User into the database
+     *
      * @param user
      * @return User object with ID field set
      * @throws DaoException
@@ -213,7 +192,9 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
     }
 
     /**
+     * Main author: Bianca Valicec
      * Given a student ID and a User object, update the corresponding User in the database
+     *
      * @param studentId
      * @param user
      * @throws DaoException
@@ -257,7 +238,9 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
     }
 
     /**
+     * Main author: Bianca Valicec
      * Given a Comparator, return a List of all users in User database table, sorted using the Comparator
+     *
      * @param comparator
      * @return List of User objects
      * @throws DaoException
@@ -312,6 +295,14 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
         return filteredUsers;
     }
 
+    /**
+     * Main author: Bianca Valicec
+     * Given a student ID, return the corresponding User as a JSON string
+     *
+     * @param studentId
+     * @return JSON string
+     * @throws DaoException
+     */
     public String findUserJsonByStudentId(int studentId) throws DaoException {
         try {
             User user = findUserByStudentId(studentId);
@@ -326,18 +317,20 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
         }
     }
 
-    public String studentListToJson(List<User> list) throws DaoException {
-        List<User> users = findAllUsers();
-        Gson gson = new Gson();
-        String json = gson.toJson(users);
-        System.out.println(json);
-        return json;
-    }
-
-    public String userToJson(User user) throws DaoException {
-        Gson gson = new Gson();
-        String json = gson.toJson(user);
-        System.out.println(json);
-        return json;
+    /**
+     * Main author: Liam Moore
+     * Given a List of User objects, return the List as a JSON string
+     *
+     * @param list
+     * @return JSON string
+     * @throws DaoException
+     */
+    public String usersListToJson(List<User> list) throws DaoException {
+        try {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            return gson.toJson(list);
+        } catch (Exception e) {
+            throw new DaoException("Error converting list of users to JSON: "+ e.getMessage());
+        }
     }
 }

@@ -1,14 +1,13 @@
-package DAOs;
-import Exceptions.DaoException;
+package Server.DAOs;
+import Server.Exceptions.DaoException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 public class MySqlDao {
-    public Connection getConnection() throws DaoException
-    {
+    public Connection getConnection() throws DaoException, SQLException {
         String driver = "com.mysql.cj.jdbc.Driver";
-        String url = "jdbc:mysql://localhost:3306/OOP_CA";
+        String url = "jdbc:mysql://localhost:3306/oop_ca5";
         String username = "root";
         String password = "";
         Connection connection = null;

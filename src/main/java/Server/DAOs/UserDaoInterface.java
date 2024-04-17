@@ -1,7 +1,12 @@
-package DAOs;
+/**
+ * Main Author: Liam Moore
+ * Other Contributors: Bianca Valicec
+ **/
 
-import DTOs.User;
-import Exceptions.DaoException;
+package Server.DAOs;
+
+import Server.DTOs.User;
+import Server.Exceptions.DaoException;
 
 import java.util.Comparator;
 import java.util.List;
@@ -21,7 +26,5 @@ public interface UserDaoInterface {
 
     String findUserJsonByStudentId(int studentId) throws DaoException;
 
-    String studentListToJson(List<User> studentList) throws DaoException;
-
-    String userToJson(User user) throws DaoException;
+    String usersListToJson(List<User> list) throws DaoException;
 }

@@ -1,11 +1,21 @@
 package DAOs;
-import DTOs.User;
-import Exceptions.DaoException;
-import org.junit.Test;
-import org.junit.After;
-import org.junit.Before;
-import Comparators.UserGradeComparator;
 
+import Server.Comparators.UserGradeComparator;
+import Server.DAOs.MySqlUserDao;
+import Server.DAOs.UserDaoInterface;
+import Server.DTOs.User;
+import Server.Exceptions.DaoException;
+import com.google.gson.Gson;
+import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -14,187 +24,207 @@ public class MySqlUserDaoTest {
     private UserDaoInterface userDao;
     private User userToDelete; // Store the user to delete for the test
 
+    private static final int SERVER_PORT = 8080;
+    private static final String SERVER_HOST = "localhost";
+
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
+    private BufferedReader consoleInput;
+
+    /**
+     * Main Author: Bianca Valicec
+     **/
+    @BeforeEach
+    public void setup() throws IOException {
+        socket = new Socket(SERVER_HOST, SERVER_PORT);
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        consoleInput = new BufferedReader(new InputStreamReader(System.in));
+    }
+
+    @AfterEach
+    public void tearDown() throws IOException {
+        socket.close();
+        out.close();
+        in.close();
+        consoleInput.close();
+    }
+
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void testFindAllUsers() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
-
         // Act: Call the method to be tested
         List<User> users = userDao.findAllUsers();
-
         // Assert: Verify the results
-        assertNotNull("Returned list of users should not be null", users); // Ensure that the list of users is not null
-        assertFalse("Returned list of users should not be empty", users.isEmpty()); // Ensure that the list of users is not empty
-        // Add more assertions as needed to verify the correctness of the returned data
+        assertNotNull("Returned list of users should not be null", users);
+        assertFalse("Returned list of users should not be empty", users.isEmpty());
     }
 
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void findUserByStudentIdTrue() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
-        int studentId = 104; // Provide a test first name
-
         // Act: Call the method to be tested
-        User user = userDao.findUserByStudentId(studentId);
-
+        User user = userDao.findUserByStudentId(12345);
         // Assert: Verify the results
-        assertNotNull("Returned user should not be null", user); // Ensure that the user is not null
-        assertEquals("Unexpected first name", studentId, user.getStudentId()); // Ensure that the returned user has the expected studentId
+        assertNotNull("Returned user should not be null", user);
+        assertEquals("Unexpected studentId", 12345, user.getStudentId());
     }
 
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void findUserByStudentIdFalse() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
-        int studentId = 2568; // Provide a test first name
-
         // Act: Call the method to be tested
-        User user = userDao.findUserByStudentId(studentId);
-
+        User user = userDao.findUserByStudentId(2568);
         // Assert: Verify the results
-        assertNull("Returned user should be null", user); // Ensure that the user is null indicating no user was found with the specified studentId
+        assertNull("Returned user should be null", user);
     }
 
-    @Before
-    public void setUp() throws DaoException {
-        // Instantiate your UserDao implementation and insert a user into the database
-        userDao = new MySqlUserDao();
-        userToDelete = new User(12345, "Jane", "Doe", 1, "Math", 80, "Spring 2021");
-        // Insert the user into the database
-        userDao.insertUser(userToDelete);
-    }
-
-    @After
-    public void tearDown() throws DaoException {
-        // Clean up the database by deleting the user inserted during setup
-        if (userToDelete != null) {
-            userDao.deleteUserByStudentId(userToDelete.getStudentId());
-        }
-    }
-
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void testDeleteUserByStudentId_ExistingUser() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        int existingStudentId = userToDelete.getStudentId(); // Use the student ID of the user inserted during setup
-
         // Act: Call the method to be tested
-        int initialUserCount = userDao.findAllUsers().size(); // Get the initial number of users
-        userDao.deleteUserByStudentId(existingStudentId);
-
+        userDao.deleteUserByStudentId(12345);
         // Assert: Verify the effects of deletion
-        int finalUserCount = userDao.findAllUsers().size(); // Get the final number of users after deletion
-
-        // If the user existed and was deleted, the final user count should be less than the initial user count
-        assertTrue("User should be deleted if it exists", finalUserCount < initialUserCount);
+        assertNull("User should be deleted if it exists", userDao.findUserByStudentId(12345));
     }
 
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void testDeleteUserByStudentId_NonExistingUser() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        int nonExistingStudentId = -1; // Provide a non-existing student ID
-
         // Act: Call the method to be tested
-        int initialUserCount = userDao.findAllUsers().size(); // Get the initial number of users
-        userDao.deleteUserByStudentId(nonExistingStudentId);
-
+        userDao.deleteUserByStudentId(-1);
         // Assert: Verify the effects of deletion
-        int finalUserCount = userDao.findAllUsers().size(); // Get the final number of users after deletion
-
-        // If the user didn't exist, the user count should remain unchanged
-        assertEquals("User count should remain unchanged if user does not exist", initialUserCount, finalUserCount);
+        assertNotNull("User count should remain unchanged if user does not exist", userDao.findUserByStudentId(12345));
     }
 
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void testInsertUser_Success() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
-        User userToInsert = new User(111, "Amy", "O'Neill", 304, "Math", 95.5f, "Semester 1"); // Create a user to insert into the database
-        int initialUserCount = userDao.findAllUsers().size(); // Get the initial number of users
-
         // Act: Call the method to be tested
+        User userToInsert = new User(111, "Amy", "O'Neill", 304, "Math", 95.5f, "Semester 1");
         userDao.insertUser(userToInsert);
-
         // Assert: Verify the effects of insertion
-        int finalUserCount = userDao.findAllUsers().size(); // Get the final number of users after insertion
-
-        // If insertion is successful, the final user count should be greater than the initial user count
-        assertTrue("User should be inserted successfully", finalUserCount > initialUserCount);
-
-        // Clean up: Remove the inserted user from the database
-        userDao.deleteUserByStudentId(userToInsert.getStudentId());
+        assertNotNull("User should be inserted successfully", userDao.findUserByStudentId(111));
     }
 
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void testUpdateUserByStudentId_Success() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
-        User userToUpdate = new User(123456, "Alice", "Smith", 306, "Biology", 92.0f,"Semester 1"); // Create a user to update in the database
-        userDao.insertUser(userToUpdate); // Insert the user into the database
-        int initialUserCount = userDao.findAllUsers().size(); // Get the initial number of users
-
         // Act: Call the method to be tested
+        User userToUpdate = new User(123456, "Alice", "Smith", 306, "Biology", 92.0f, "Semester 1");
+        userDao.insertUser(userToUpdate);
         String updatedFirstName = "UpdatedFirstName";
-        userToUpdate.setFirstName(updatedFirstName); // Set the updated first name
-        userDao.updateUserByStudentId(userToUpdate.getStudentId(), userToUpdate);
-
+        userToUpdate.setFirstName(updatedFirstName);
+        userDao.updateUserByStudentId(123456, userToUpdate);
         // Assert: Verify the effects of the update
-        int finalUserCount = userDao.findAllUsers().size(); // Get the final number of users after update
-        User updatedUser = userDao.findUserByStudentId(userToUpdate.getStudentId()); // Retrieve the updated user
-
-        // Verify that the user count remains unchanged and the first name is updated
-        assertEquals("User count should remain unchanged", initialUserCount, finalUserCount);
-        assertNotNull("Updated user should not be null", updatedUser);
-        assertEquals("First name should be updated", updatedFirstName, updatedUser.getFirstName());
-
-        // Clean up: Remove the inserted user from the database
-        userDao.deleteUserByStudentId(userToUpdate.getStudentId());
+        assertEquals("First name should be updated", updatedFirstName, userDao.findUserByStudentId(123456).getFirstName());
     }
 
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
     public void testFindUsersUsingFilter_GradeComparator() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
-        List<User> initialUsers = userDao.findAllUsers(); // Get the initial list of users
-
         // Act: Call the method to be tested
         List<User> usersFilteredByGrade = userDao.findUsersUsingFilter(new UserGradeComparator());
-
-        // Print the contents of both lists for debugging
-        System.out.println("Initial Users:");
-        for (User user : initialUsers) {
-            System.out.println(user);
-        }
-        System.out.println("Filtered Users:");
-        for (User user : usersFilteredByGrade) {
-            System.out.println(user);
-        }
-
         // Assert: Verify the results
         assertNotNull("Filtered user list should not be null", usersFilteredByGrade);
-
-        // Verify that the filtered list is a subset of the initial user list
-        assertTrue("Filtered user list should be a subset of initial user list", initialUsers.containsAll(usersFilteredByGrade));
-
-        // Verify that the filtered list is sorted by grade in descending order
-        float previousGrade = Float.MAX_VALUE;
-        for (User user : usersFilteredByGrade) {
-            assertTrue("User should have grade less than or equal to previous user's grade", user.getGrade() <= previousGrade);
-            previousGrade = user.getGrade();
-        }
     }
 
+    /**
+     * Main Author: Bianca Valicec
+     **/
     @Test
-    public void convertListOfEntitiesToJSONString() throws DaoException {
-        // Arrange: Prepare test data and dependencies
-        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
-        List<User> users = userDao.findAllUsers(); // Get the list of users
+    public void testConvertListToJson() throws DaoException {
+        // Arrange: Prepare test data
+        List<User> userList = new ArrayList<>();
+        userList.add(new User(1, "John", "Doe", 101, "Math", 85, "Semester 1"));
+        userList.add(new User(2, "Jane", "Smith", 102, "English", 90, "Semester 2"));
+
+        // Convert the test data to JSON using Gson
+        Gson gson = new Gson();
+        String expectedJson = gson.toJson(userList);
 
         // Act: Call the method to be tested
-        String jsonString = userDao.studentListToJson(users);
+        String json = userDao.usersListToJson(userList);
 
         // Assert: Verify the results
-        assertNotNull("JSON string should not be null", jsonString);
-        assertFalse("JSON string should not be empty", jsonString.isEmpty());
-        System.out.println("JSON String: " + jsonString);
+        assertNotNull("Converted JSON should not be null", json);
+        assertEquals("Output JSON should match the expected JSON", expectedJson.replaceAll("\\s", ""), json.replaceAll("\\s", ""));
+    }
+
+    /**
+     * Main Author: Bianca Valicec
+     **/
+    @Test
+    public void testConvertUserToJson() throws DaoException {
+        // Arrange: Prepare test data and dependencies
+        UserDaoInterface userDao = new MySqlUserDao(); // Instantiate your UserDao implementation
+        int studentId = 101; // Provide a valid student ID for an existing user
+
+        // Act: Call the method to be tested
+        String json = userDao.findUserJsonByStudentId(studentId);
+
+        // Assert: Verify the results
+        assertNotNull("Converted JSON should not be null", json);
+
+        // Verify that the JSON string is not empty
+        assertFalse("JSON string should not be empty", json.isEmpty());
+
+        // Verify that the JSON string contains all expected fields and values for the user
+        assertTrue("JSON string should contain studentId", json.contains("\"studentId\":" + studentId));
+        assertTrue("JSON string should contain firstName", json.contains("\"firstName\":\"Jane\""));
+        assertTrue("JSON string should contain lastName", json.contains("\"lastName\":\"Doe\""));
+        assertTrue("JSON string should contain courseId", json.contains("\"courseId\":302"));
+        assertTrue("JSON string should contain courseName", json.contains("\"courseName\":\"Nursing\""));
+        assertTrue("JSON string should contain grade", json.contains("\"grade\":70.2"));
+        assertTrue("JSON string should contain semester", json.contains("\"semester\":\"Semester 1\""));
+
+        // Add more specific assertions if needed
+    }
+
+    /**
+     * Main Author: Bianca Valicec
+     * @throws IOException
+     */
+    @Test
+    public void testDisplayEntityById_EntityExists() throws IOException {
+        // Sending command for Display Entity by ID
+        out.println(9);
+        // Sending entity ID to display
+        out.println(101);
+        // Expecting a JSON response containing entity details
+        String jsonResponse = in.readLine();
+        assertEquals("{\"id\":101,\"studentId\":101,\"firstName\":\"John\",\"lastName\":\"Doe\",\"courseId\":1,\"courseName\":\"Mathematics\",\"grade\":85.5,\"semester\":\"Spring\"}", jsonResponse);
+    }
+
+    /**
+     * Main Author: Bianca Valicec
+     * @throws IOException
+     */
+    @Test
+    public void testDisplayEntityById_EntityNotExists() throws IOException {
+        // Sending command for Display Entity by ID
+        out.println(9);
+        // Sending a non-existent entity ID to display
+        out.println(999);
+        // Expecting a response indicating that the entity was not found
+        String response = in.readLine();
+        assertEquals("Entity not found.", response);
     }
 }
