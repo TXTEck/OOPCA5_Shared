@@ -53,10 +53,14 @@ public class Client {
                 if (commandInt == 0) {
                     break;  // Exit the loop if the command is 0 (Exit)
                 }
-
                 switch (commandInt) {
                     case 1:
                     case 2:
+                        System.out.println("Enter the student ID: ");
+                        String studentId = consoleInput.readLine();
+                        out.println(studentId);
+                        handleStandardCommand(in);
+                        break;
                     case 3:
                     case 4:
                     case 5:

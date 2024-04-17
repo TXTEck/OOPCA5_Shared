@@ -2,6 +2,7 @@ package Server;
 
 import Server.Comparators.UserGradeComparator;
 import Server.DAOs.MySqlUserDao;
+import Server.DAOs.MySqlDao;
 import Server.DAOs.UserDaoInterface;
 import Server.DTOs.User;
 import Server.Exceptions.DaoException;
@@ -145,7 +146,7 @@ class ClientHandler implements Runnable {
                         System.out.println("Server message: Client has notified us that it is quitting.");
                         break;
                     default:
-                        socketWriter.println("error I'm sorry I don't understand your request");
+                        socketWriter.println("Error I'm sorry I don't understand your request");
                         System.out.println("Server message: Invalid request from client.");
                         break;
                 }
@@ -192,30 +193,28 @@ class ClientHandler implements Runnable {
      * Main Author: Liam Moore
      * Other Contributors: Bianca Valicec
      **/
-    private void findUserByStudentId() {
-        try {
+    private void findUserByStudentId() throws IOException {
+        User user = null;
+        while (user == null) {
             socketWriter.println("Enter student ID: ");
-            String studentIdStr = "";
-            while (studentIdStr.isEmpty()) {
-                studentIdStr = socketReader.readLine();
-                if (studentIdStr == null) {
+            String studentIdStr = socketReader.readLine();
+            int studentId;
+            try {
+                studentId = Integer.parseInt(studentIdStr);
+                user = IUserDao.findUserByStudentId(studentId);
+                if (user != null) {
+                    displayUser(user);
+                    System.out.println("Server: (ClientHandler): User found for student ID " + studentId);
                     break;
+                } else {
+                    socketWriter.println("User not found. Please try again.");
                 }
+            } catch (NumberFormatException e) {
+                socketWriter.println("Invalid input. Please enter a valid student ID.");
+            } catch (DaoException e) {
+                socketWriter.println("Error accessing database: " + e.getMessage());
+                break;
             }
-            if (studentIdStr != null) {
-                int studentId = Integer.parseInt(studentIdStr);
-                System.out.println("Server: (ClientHandler): Received student ID from client: " + studentId); // Debug statement
-                User user = IUserDao.findUserByStudentId(studentId);
-                displayUser(user);
-            } else {
-                socketWriter.println("Error: No input received from client.");
-            }
-        } catch (DaoException e) {
-            socketWriter.println("Error: " + e.getMessage());
-        } catch (NumberFormatException e) {
-            socketWriter.println("Invalid input. Please enter a valid student ID.");
-        } catch (IOException e) {
-            socketWriter.println("Error reading input from client: " + e.getMessage());
         }
     }
 

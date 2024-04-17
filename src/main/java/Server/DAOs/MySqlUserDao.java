@@ -11,6 +11,12 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
+    private static final String URL = "jdbc:mysql://localhost/oop_ca5";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = "";
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USERNAME, PASSWORD);
+    }
     /**
      * Main author: Liam Moore
      * Will access and return a List of all users in User database table
@@ -28,24 +34,26 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
         try {
             //Get connection object using the getConnection() method inherited
             // from the super class (MySqlDao.java)
-            connection = this.getConnection();
+            connection = getConnection();
 
-            String query = "SELECT * FROM StudentGrades";
+            String query = "SELECT * FROM studentgrades";
             preparedStatement = connection.prepareStatement(query);
 
             //Using a PreparedStatement to execute SQL...
             resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
-                int userId = resultSet.getInt("id");
-                int studentId = resultSet.getInt("student_id");
-                String firstName = resultSet.getString("first_name");
-                String lastName = resultSet.getString("last_name");
-                int courseId = resultSet.getInt("course_id");
-                String courseName = resultSet.getString("course_name");
-                float grade = resultSet.getFloat("grade");
-                String semester = resultSet.getString("semester");
-                User u = new User(userId, studentId, firstName, lastName, courseId, courseName, grade, semester);
-                usersList.add(u);
+                User user = new User(
+                        resultSet.getInt("id"),
+                        resultSet.getInt("student_id"),
+                        resultSet.getString("first_name"),
+                        resultSet.getString("last_name"),
+                        resultSet.getInt("course_id"),
+                        resultSet.getString("course_name"),
+                        resultSet.getFloat("grade"),
+                        resultSet.getString("semester")
+                );
+                usersList.add(user);
+                System.out.println("User found: " + user);  // Log each user retrieved
             }
         } catch (SQLException e) {
             throw new DaoException("findAllUseresultSet() " + e.getMessage());
@@ -70,55 +78,36 @@ public class MySqlUserDao extends MySqlDao implements UserDaoInterface {
     /**
      * Main author: Liam Moore
      * Other Contributors: Bianca Valicec
-     * Given a username and password, find the corresponding User
+     * Given a user ID, find the corresponding User
      *
      * @param studentId
      * @return User object if found, or null otherwise
      * @throws DaoException
      */
+    @Override
     public User findUserByStudentId(int studentId) throws DaoException {
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
-        User user = null;
-        try {
-            connection = this.getConnection();
-
-            String query = "SELECT * FROM `StudentGrades` WHERE student_id = ?";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setInt(1, studentId);
-
-            resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                int userId = resultSet.getInt("id");
-                String firstName = resultSet.getString("first_name");
-                String lastName = resultSet.getString("last_name");
-                int courseId = resultSet.getInt("course_id");
-                String courseName = resultSet.getString("course_name");
-                float grade = resultSet.getFloat("grade");
-                String semester = resultSet.getString("semester");
-
-
-                user = new User(userId, studentId, firstName, lastName, courseId, courseName, grade, semester);
+        String query = "SELECT * FROM `studentgrades` WHERE student_id = ?";
+        try (Connection connection = this.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+             preparedStatement.setInt(1, studentId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return new User(
+                            resultSet.getInt("id"),
+                            resultSet.getInt("student_id"),
+                            resultSet.getString("first_name"),
+                            resultSet.getString("last_name"),
+                            resultSet.getInt("course_id"),
+                            resultSet.getString("course_name"),
+                            resultSet.getFloat("grade"),
+                            resultSet.getString("semester")
+                    );
+                }
             }
         } catch (SQLException e) {
-            throw new DaoException("findUserByFirstName() " + e.getMessage());
-        } finally {
-            try {
-                if (resultSet != null) {
-                    resultSet.close();
-                }
-                if (preparedStatement != null) {
-                    preparedStatement.close();
-                }
-                if (connection != null) {
-                    freeConnection(connection);
-                }
-            } catch (SQLException e) {
-                throw new DaoException("findUserByFirstName() " + e.getMessage());
-            }
+            throw new DaoException("findUserByStudentID() " + e.getMessage());
         }
-        return user;     // reference to User object, or null value
+        return null;  // Return null if no user is found
     }
 
     /**
